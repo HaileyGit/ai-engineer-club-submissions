@@ -1,0 +1,16 @@
+[project]
+name = "movie-agent"
+version = "0.1.0"
+description = "Movie Expert Agent — #2.2 프롬프트 기반 함수 호출 (프레임워크 없음)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai>=1.40.0",
+    "requests>=2.32.0",
+    "python-dotenv>=1.0.1",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.0.0",
+]
