@@ -1,0 +1,15 @@
+[project]
+name = "movie-memory-bot"
+version = "0.1.0"
+description = "Movie Recommendation Bot with Memory — #2.3 취향·시청 기록을 messages 메모리로 (프레임워크 없음)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai>=1.40.0",
+    "python-dotenv>=1.0.1",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.0.0",
+]
