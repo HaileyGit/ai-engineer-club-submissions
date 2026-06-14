@@ -1,0 +1,17 @@
+[project]
+name = "movie-agent-loop"
+version = "0.1.0"
+description = "Movie Agent — Complete Agentic Loop (#2.4~2.7): tools 파라미터 + tool_calls + 실제 API + 메모리 + 루프"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai>=1.40.0",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.0.0",
+    "nbconvert>=7.17.1",
+]
