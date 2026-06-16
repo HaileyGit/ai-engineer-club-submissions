@@ -9,3 +9,10 @@
 |------|------|------|
 | [week01-movie-expert/](week01-movie-expert/) | Movie Expert Agent (프롬프트 함수호출) | #2.0~2.2 |
 | [week01-movie-memory-bot/](week01-movie-memory-bot/) | Movie Recommendation Bot with Memory | #2.3 |
+| [week01-movie-agent-loop/](week01-movie-agent-loop/) | Movie Agent Complete Agentic Loop (tools + memory + 루프) | #2.4~2.7 |
+
+## 2주차 (#7 ~ #8)
+
+| 폴더 | 과제 | 강의 |
+|------|------|------|
+| [week02-life-coach/](week02-life-coach/) | Life Coach Agent (Streamlit + Web Search) | #8.0~8.2 |

@@ -1,0 +1,16 @@
+[project]
+name = "life-coach"
+version = "0.1.0"
+description = "Life Coach Agent — Streamlit + OpenAI Agents SDK + WebSearchTool (week02, #8.0~8.3 응용)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai-agents>=0.17.5",
+    "python-dotenv>=1.2.2",
+    "streamlit>=1.58.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+]
