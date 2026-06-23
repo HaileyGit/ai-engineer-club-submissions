@@ -15,4 +15,10 @@
 
 | 폴더 | 과제 | 강의 |
 |------|------|------|
-| [week02-life-coach/](week02-life-coach/) | Life Coach Agent (Streamlit + Web Search) | #8.0~8.2 |
+| [week02-life-coach/](week02-life-coach/) | Life Coach Agent (Web/File Search + Image) | #8.0~8.6 |
+
+## 3주차 (#9)
+
+| 폴더 | 과제 | 강의 |
+|------|------|------|
+| [week03-restaurant-bot/](week03-restaurant-bot/) | Restaurant Bot (멀티 에이전트 + Handoffs) | #9.4~9.6 |
