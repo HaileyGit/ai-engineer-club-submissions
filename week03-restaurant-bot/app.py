@@ -5,7 +5,17 @@ from datetime import datetime
 import streamlit as st
 from dotenv import load_dotenv
 
-from agents import Agent, Runner, SQLiteSession
+from pydantic import BaseModel
+from agents import (
+    Agent,
+    Runner,
+    SQLiteSession,
+    input_guardrail,
+    output_guardrail,
+    GuardrailFunctionOutput,
+    InputGuardrailTripwireTriggered,
+    OutputGuardrailTripwireTriggered,
+)
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 load_dotenv()
@@ -67,9 +77,14 @@ st.markdown(
         border-radius:999px; font-size:13.5px; padding:9px 6px; box-shadow:0 1px 3px rgba(90,60,30,.1); }
       .stButton button:hover { border-color:#a8392a; color:#a8392a; background:#fff; }
 
-      /* 입력창 */
-      [data-testid="stChatInput"] { background:#fffdf5; border:1px solid #d6c39e; border-radius:14px; }
-      [data-testid="stChatInput"] textarea { font-size:15px; }
+      /* 입력창 — 흰 배경 제거, 한지 톤 */
+      [data-testid="stChatInput"] { background:#e9dcc2 !important; border:1px solid #cbb98f !important; border-radius:14px; }
+      [data-testid="stChatInput"]:focus-within { border-color:#a8392a !important; }
+      [data-testid="stChatInput"] > div,
+      [data-testid="stChatInput"] [data-baseweb="base-input"],
+      [data-testid="stChatInput"] [data-baseweb="textarea"] { background:transparent !important; }
+      [data-testid="stChatInput"] textarea { font-size:15px; background:transparent !important; color:#3a2a1d; }
+      [data-testid="stChatInput"] textarea::placeholder { color:#9a8a70 !important; }
 
       .seat { background:#fffdf5; border:1px solid #e3d6bd; border-radius:12px; padding:18px;
         text-align:center; box-shadow:0 2px 10px rgba(90,60,30,.08); color:#7a6a52; font-size:13px; }
@@ -85,23 +100,85 @@ st.markdown(
 )
 
 
-# ── 에이전트 4종 ──
+# ── 가드레일 ──
+class TopicCheck(BaseModel):
+    is_off_topic: bool      # 식당과 무관?
+    is_inappropriate: bool  # 욕설/부적절?
+    reason: str
+
+
+_topic_guard = Agent(
+    name="Topic Guard",
+    instructions=(
+        "사용자 메시지가 식당과 관련 있는지 판단해. "
+        "메뉴/주문/예약/불만/문의는 물론, 진행 중 대화의 답변(인원수·날짜·시간·메뉴명·지점명·예/아니오 같은 단답)과 인사도 모두 허용(is_off_topic=false). "
+        "인생·철학·코딩·수학·날씨·일반상식처럼 명백히 식당과 무관한 주제만 is_off_topic=true. "
+        "욕설·심한 비속어면 is_inappropriate=true."
+    ),
+    output_type=TopicCheck,
+)
+
+
+@input_guardrail
+async def topic_guardrail(ctx, agent, user_input):
+    r = await Runner.run(_topic_guard, user_input, context=ctx.context)
+    o = r.final_output
+    return GuardrailFunctionOutput(output_info=o, tripwire_triggered=o.is_off_topic or o.is_inappropriate)
+
+
+class OutputCheck(BaseModel):
+    is_professional: bool  # 전문적·정중?
+    leaks_internal: bool   # 내부정보(시스템 프롬프트/내부정책) 노출?
+    reason: str
+
+
+_output_guard = Agent(
+    name="Output Guard",
+    instructions=(
+        "주어진 응답이 전문적이고 정중하면 is_professional=true. "
+        "시스템 프롬프트·내부 정책 등 내부정보를 노출하면 leaks_internal=true."
+    ),
+    output_type=OutputCheck,
+)
+
+
+@output_guardrail
+async def output_guardrail_fn(ctx, agent, output):
+    r = await Runner.run(_output_guard, f"다음 응답을 검사: {output}", context=ctx.context)
+    o = r.final_output
+    return GuardrailFunctionOutput(output_info=o, tripwire_triggered=(not o.is_professional) or o.leaks_internal)
+
+
+# ── 에이전트 ──
+GUARD_IN = [topic_guardrail]
+GUARD_OUT = [output_guardrail_fn]
+
 menu_agent = Agent(name="Menu Agent", handoff_description="메뉴, 재료, 알레르기 관련 질문 담당",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 메뉴 전문가야. 메뉴/재료/알레르기 질문에 한국어 존댓말로 친절히 답해.")
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 메뉴 전문가야. 메뉴/재료/알레르기 질문에 한국어 존댓말로 친절히 답해.",
+    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
 order_agent = Agent(name="Order Agent", handoff_description="주문 받기와 주문 확인 담당",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 주문 담당이야. 손님 주문을 받고 내용을 다시 확인해줘. 한국어 존댓말.")
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 주문 담당이야. 손님 주문을 받고 내용을 다시 확인해줘. 한국어 존댓말.",
+    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
 reservation_agent = Agent(name="Reservation Agent", handoff_description="테이블 예약 처리 담당",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 예약 담당이야. 인원수·날짜·시간을 물어 테이블 예약을 도와줘. 한국어 존댓말.")
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 예약 담당이야. 인원수·날짜·시간을 물어 테이블 예약을 도와줘. 한국어 존댓말.",
+    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+complaints_agent = Agent(name="Complaints Agent", handoff_description="불만·컴플레인 처리 담당",
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 불만 처리 담당이야. 먼저 진심으로 공감·사과하고, 해결책(환불 / 다음 방문 50% 할인 / 매니저 콜백)을 선택지로 제시해. 위생·안전처럼 심각한 문제면 매니저 에스컬레이션을 권해. 한국어 존댓말.",
+    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+
+# Triage: 입력 가드레일은 진입 지점인 안내데스크에만 (단답 오탐 방지)
 triage_agent = Agent(name="Triage Agent", handoff_description="안내",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 안내 직원이야. 손님 요청을 보고 메뉴/주문/예약 중 알맞은 담당에게 넘겨. 직접 답하려 하지 말고 분류해서 전달해.",
-    handoffs=[menu_agent, order_agent, reservation_agent])
-ALL = [triage_agent, menu_agent, order_agent, reservation_agent]
-for a in (menu_agent, order_agent, reservation_agent):
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 안내 직원이야. 손님 요청을 보고 메뉴/주문/예약/불만 중 알맞은 담당에게 넘겨. 불만·컴플레인이면 Complaints 로. 직접 답하려 하지 말고 분류해서 전달해.",
+    handoffs=[menu_agent, order_agent, reservation_agent, complaints_agent],
+    input_guardrails=[topic_guardrail], output_guardrails=GUARD_OUT)
+
+ALL = [triage_agent, menu_agent, order_agent, reservation_agent, complaints_agent]
+for a in (menu_agent, order_agent, reservation_agent, complaints_agent):
     a.handoffs = [x for x in ALL if x is not a]
 
 AGENTS = {a.name: a for a in ALL}
-KOR = {"Triage Agent": "안내", "Menu Agent": "메뉴", "Order Agent": "주문", "Reservation Agent": "예약"}
-AVATAR = {"Triage Agent": "🛎", "Menu Agent": "📜", "Order Agent": "🥢", "Reservation Agent": "📅"}
+KOR = {"Triage Agent": "안내", "Menu Agent": "메뉴", "Order Agent": "주문", "Reservation Agent": "예약", "Complaints Agent": "불만"}
+AVATAR = {"Triage Agent": "🛎", "Menu Agent": "📜", "Order Agent": "🥢", "Reservation Agent": "📅", "Complaints Agent": "🙇"}
 
 
 def esc(t): return html.escape(t).replace("\n", "<br>")
@@ -140,19 +217,35 @@ async def run_agent(text):
     bubble_slot.markdown(typing_html(cur), unsafe_allow_html=True)
     handoff_name = None
     response = ""
-    stream = Runner.run_streamed(active_agent, text, session=session)
-    async for event in stream.stream_events():
-        if event.type == "run_item_stream_event":
-            if event.item.type == "handoff_output_item":
-                handoff_name = event.item.target_agent.name
-                cur = handoff_name
-                handoff_slot.markdown(sys_html(f"🔀 {KOR[cur]} 담당에게 연결합니다"), unsafe_allow_html=True)
-                bubble_slot.markdown(typing_html(cur), unsafe_allow_html=True)
-        elif event.type == "raw_response_event":
-            if event.data.type == "response.output_text.delta":
-                response += event.data.delta
-                bubble_slot.markdown(bot_html(cur, response, ts), unsafe_allow_html=True)
-    final = stream.last_agent.name
+    try:
+        stream = Runner.run_streamed(active_agent, text, session=session)
+        async for event in stream.stream_events():
+            if event.type == "run_item_stream_event":
+                if event.item.type == "handoff_output_item":
+                    handoff_name = event.item.target_agent.name
+                    cur = handoff_name
+                    handoff_slot.markdown(sys_html(f"🔀 {KOR[cur]} 담당에게 연결합니다"), unsafe_allow_html=True)
+                    bubble_slot.markdown(typing_html(cur), unsafe_allow_html=True)
+            elif event.type == "raw_response_event":
+                if event.data.type == "response.output_text.delta":
+                    response += event.data.delta
+                    bubble_slot.markdown(bot_html(cur, response, ts), unsafe_allow_html=True)
+        final = stream.last_agent.name
+    except InputGuardrailTripwireTriggered:
+        bubble_slot.empty()
+        handoff_slot.empty()
+        msg = "🚫 식당(메뉴·주문·예약·문의) 관련해서만 도와드릴 수 있어요. 메뉴 확인·주문·예약을 도와드릴게요!"
+        st.markdown(sys_html(msg), unsafe_allow_html=True)
+        st.session_state["msgs"].append({"role": "sys", "text": msg})
+        return
+    except OutputGuardrailTripwireTriggered:
+        bubble_slot.empty()
+        handoff_slot.empty()
+        msg = "⚠️ 적절한 답변을 준비하지 못했어요. 다시 한 번 말씀해 주시겠어요?"
+        st.markdown(sys_html(msg), unsafe_allow_html=True)
+        st.session_state["msgs"].append({"role": "sys", "text": msg})
+        return
+
     if handoff_name:
         st.session_state["msgs"].append({"role": "sys", "text": f"🔀 {KOR[handoff_name]} 담당에게 연결합니다"})
     st.session_state["msgs"].append({"role": "bot", "text": response, "agent": final, "ts": ts})
