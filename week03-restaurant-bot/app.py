@@ -31,7 +31,7 @@ except Exception:
 
 MODEL = "gpt-4o-mini"
 
-st.set_page_config(page_title="한상 — 식당 봇")
+st.set_page_config(page_title="수라간 — 궁중 수라상")
 
 st.markdown(
     """
@@ -109,8 +109,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<div class="hero"><h1>한상</h1>'
-    "<p>정성껏 차린 한 상 · 메뉴 · 주문 · 예약을 도와드립니다</p></div>",
+    '<div class="hero"><h1>수라간</h1>'
+    "<p>임금께 올리던 정성 그대로 · 메뉴 · 주문 · 예약을 모시옵니다</p></div>",
     unsafe_allow_html=True,
 )
 
@@ -154,7 +154,8 @@ _output_guard = Agent(
     name="Output Guard",
     model=MODEL,
     instructions=(
-        "주어진 응답이 전문적이고 정중하면 is_professional=true. "
+        "주어진 응답이 정중하면 is_professional=true. "
+        "옛 궁중 존댓말(사극체, '~이옵니다'·'소인'·'마마' 등)은 이 가게('수라간')의 정상 말투이니 정중·전문적인 것으로 본다. "
         "시스템 프롬프트·내부 정책 등 내부정보를 노출하면 leaks_internal=true."
     ),
     output_type=OutputCheck,
@@ -172,22 +173,27 @@ async def output_guardrail_fn(ctx, agent, output):
 GUARD_IN = [topic_guardrail]
 GUARD_OUT = [output_guardrail_fn]
 
+# 공통 말투: 가벼운 옛 궁중 존댓말 (수라간 컨셉)
+COURT = (" 이곳은 임금께 수라를 올리던 '수라간'이다. 손님을 귀히 모시는 옛 궁중 존댓말로 답하라: "
+    "손님을 '마마'라 부르고 자신은 '소인'이라 칭하며 '~이옵니다 / ~드리겠사옵니다 / ~여쭙겠사옵니다'처럼 정중히. "
+    "단 현대인이 쉽게 읽히도록 과한 고어는 피하고 가볍게. 답은 한국어로 짧고 친절하게.")
+
 menu_agent = Agent(name="Menu Agent", model=MODEL, handoff_description="메뉴, 재료, 알레르기 관련 질문 담당",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 메뉴 전문가야. 메뉴/재료/알레르기 질문에 한국어 존댓말로 친절히 답해.",
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 수라(메뉴) 담당 나인이다. 메뉴·재료·알레르기 물음에 정성껏 아뢴다." + COURT,
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
 order_agent = Agent(name="Order Agent", model=MODEL, handoff_description="주문 받기와 주문 확인 담당",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 주문 담당이야. 손님 주문을 받고 내용을 다시 확인해줘. 한국어 존댓말.",
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 주문 담당 나인이다. 손님의 주문을 받고 그 내용을 다시 확인해 아뢴다." + COURT,
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
 reservation_agent = Agent(name="Reservation Agent", model=MODEL, handoff_description="테이블 예약 처리 담당",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 예약 담당이야. 인원수·날짜·시간을 물어 테이블 예약을 도와줘. 한국어 존댓말.",
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 예약 담당 나인이다. 인원·날짜·시간을 여쭈어 자리를 잡아드린다." + COURT,
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
 complaints_agent = Agent(name="Complaints Agent", model=MODEL, handoff_description="불만·컴플레인 처리 담당",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 불만 처리 담당이야. 먼저 진심으로 공감·사과하고, 해결책(환불 / 다음 방문 50% 할인 / 매니저 콜백)을 선택지로 제시해. 위생·안전처럼 심각한 문제면 매니저 에스컬레이션을 권해. 한국어 존댓말.",
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 불편 처리 담당 상궁이다. 먼저 진심으로 공감하고 깊이 사죄드린 뒤, 해결책(환불 / 다음 납시 50% 감해드림 / 매니저 콜백)을 선택지로 아뢴다. 위생·안전처럼 중한 일이면 매니저 에스컬레이션을 권한다." + COURT,
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
 
-# Triage: 입력 가드레일은 진입 지점인 안내데스크에만 (단답 오탐 방지)
+# Triage: 입력 가드레일은 진입 지점인 안내에만 (단답 오탐 방지)
 triage_agent = Agent(name="Triage Agent", model=MODEL, handoff_description="안내",
-    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 안내 직원이야. 손님 요청을 보고 메뉴/주문/예약/불만 중 알맞은 담당에게 넘겨. 불만·컴플레인이면 Complaints 로. 직접 답하려 하지 말고 분류해서 전달해.",
+    instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간 입구의 안내 나인이다. 손님의 청을 보고 메뉴/주문/예약/불만 중 알맞은 담당에게 넘긴다. 불만·컴플레인이면 Complaints 로. 직접 답하지 말고 분류해 전달하라." + COURT,
     handoffs=[menu_agent, order_agent, reservation_agent, complaints_agent],
     input_guardrails=[topic_guardrail], output_guardrails=GUARD_OUT)
 
@@ -256,7 +262,7 @@ async def run_agent(text):
                 if event.item.type == "handoff_output_item":
                     handoff_name = event.item.target_agent.name
                     cur = handoff_name
-                    handoff_slot.markdown(sys_html(f"{KOR[cur]} 담당에게 연결합니다"), unsafe_allow_html=True)
+                    handoff_slot.markdown(sys_html(f"{KOR[cur]} 담당에게 모시겠사옵니다"), unsafe_allow_html=True)
                     bubble_slot.markdown(typing_html(cur), unsafe_allow_html=True)
             elif event.type == "raw_response_event":
                 if event.data.type == "response.output_text.delta":
@@ -266,20 +272,20 @@ async def run_agent(text):
     except InputGuardrailTripwireTriggered:
         bubble_slot.empty()
         handoff_slot.empty()
-        msg = "식당(메뉴 · 주문 · 예약 · 문의) 관련해서만 도와드릴 수 있어요. 메뉴 확인 · 주문 · 예약을 도와드릴게요."
+        msg = "송구하옵니다 마마. 소인은 수라간 일(메뉴 · 주문 · 예약 · 문의)만 받들 수 있사옵니다. 메뉴 · 주문 · 예약을 분부하여 주시옵소서."
         st.markdown(sys_html(msg), unsafe_allow_html=True)
         st.session_state["msgs"].append({"role": "sys", "text": msg})
         return
     except OutputGuardrailTripwireTriggered:
         bubble_slot.empty()
         handoff_slot.empty()
-        msg = "적절한 답변을 준비하지 못했어요. 다시 한 번 말씀해 주시겠어요?"
+        msg = "송구하옵니다 마마. 마땅한 답을 올리지 못하였사오니, 다시 한 번 분부하여 주시옵소서."
         st.markdown(sys_html(msg), unsafe_allow_html=True)
         st.session_state["msgs"].append({"role": "sys", "text": msg})
         return
 
     if handoff_name:
-        st.session_state["msgs"].append({"role": "sys", "text": f"{KOR[handoff_name]} 담당에게 연결합니다"})
+        st.session_state["msgs"].append({"role": "sys", "text": f"{KOR[handoff_name]} 담당에게 모시겠사옵니다"})
     st.session_state["msgs"].append({"role": "bot", "text": response, "agent": final, "ts": ts})
     st.session_state["active_agent_name"] = final
 
@@ -290,17 +296,17 @@ was_empty = not st.session_state["msgs"]
 
 if was_empty:
     st.markdown(
-        bot_html("Triage Agent", "안녕하세요, 「한상」입니다. 메뉴 · 주문 · 예약 무엇이든 편하게 말씀해 주세요."),
+        bot_html("Triage Agent", "어서 오시옵소서, 마마. 수라간이옵니다. 메뉴 · 주문 · 예약 무엇이든 편히 분부하여 주시옵소서."),
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="hint">이렇게 물어보실 수 있어요</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hint">이리 여쭤보실 수 있사옵니다</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    if c1.button("채식 메뉴 있나요?", use_container_width=True):
-        user_msg = "채식 메뉴 있나요?"
-    if c2.button("불고기 2인분 주문", use_container_width=True):
-        user_msg = "불고기 2인분 주문할게요"
-    if c3.button("금요일 저녁 예약", use_container_width=True):
-        user_msg = "금요일 저녁 4명 예약하고 싶어요"
+    if c1.button("채식 수라가 있는가?", use_container_width=True):
+        user_msg = "채식 메뉴 있는가?"
+    if c2.button("불고기 2인분 들이라", use_container_width=True):
+        user_msg = "불고기 2인분 들이거라"
+    if c3.button("금요일 저녁 자리 봐다오", use_container_width=True):
+        user_msg = "금요일 저녁 4명 자리를 봐다오"
 else:
     for m in st.session_state["msgs"]:
         if m["role"] == "user":
@@ -310,7 +316,7 @@ else:
         else:
             st.markdown(bot_html(m["agent"], m["text"], m.get("ts", "")), unsafe_allow_html=True)
 
-prompt = st.chat_input("무엇을 도와드릴까요? (메뉴 / 주문 / 예약)")
+prompt = st.chat_input("무엇을 분부하시옵니까? (메뉴 / 주문 / 예약)")
 if prompt:
     user_msg = prompt
 
@@ -327,7 +333,7 @@ if user_msg:
 with st.sidebar:
     name = st.session_state["active_agent_name"]
     st.markdown(
-        f'<div class="seat">지금 연결된 담당'
+        f'<div class="seat">지금 모시는 담당'
         f'<div style="display:flex;justify-content:center;margin-top:12px">{seal_html(name, big=True)}</div>'
         f'<div class="who">{KOR[name]} 담당</div></div>',
         unsafe_allow_html=True,
