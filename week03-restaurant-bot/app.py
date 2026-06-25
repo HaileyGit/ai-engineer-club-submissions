@@ -183,16 +183,16 @@ COURT = (" 이곳은 임금께 수라를 올리던 '수라간'이다. 손님을 
 
 menu_agent = Agent(name="Menu Agent", model=MODEL, handoff_description="메뉴, 재료, 알레르기 관련 질문 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 수라(메뉴) 담당 나인이다. 메뉴·재료·알레르기 물음에 정성껏 아뢴다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)  # 입력 가드는 진입(안내)에서만 — 담당 대화 중 단답 오탐 방지
 order_agent = Agent(name="Order Agent", model=MODEL, handoff_description="주문 받기와 주문 확인 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 주문 담당 나인이다. 손님의 주문을 받고 그 내용을 다시 확인해 아뢴다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)  # 입력 가드는 진입(안내)에서만 — 담당 대화 중 단답 오탐 방지
 reservation_agent = Agent(name="Reservation Agent", model=MODEL, handoff_description="테이블 예약 처리 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 예약 담당 나인이다. 인원·날짜·시간을 여쭈어 자리를 잡아드린다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)  # 입력 가드는 진입(안내)에서만 — 담당 대화 중 단답 오탐 방지
 complaints_agent = Agent(name="Complaints Agent", model=MODEL, handoff_description="불만·컴플레인 처리 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 불편 처리 담당 상궁이다. 먼저 진심으로 공감하고 깊이 사죄드린 뒤, 해결책(환불 / 다음 납시 50% 감해드림 / 매니저 콜백)을 선택지로 아뢴다. 위생·안전처럼 중한 일이면 매니저 에스컬레이션을 권한다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)  # 입력 가드는 진입(안내)에서만 — 담당 대화 중 단답 오탐 방지
 
 # Triage: 입력 가드레일은 진입 지점인 안내에만 (단답 오탐 방지)
 triage_agent = Agent(name="Triage Agent", model=MODEL, handoff_description="안내",
