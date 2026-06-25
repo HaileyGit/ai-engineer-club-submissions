@@ -1,6 +1,7 @@
 import asyncio
 import html
 import os
+import re
 import uuid
 from datetime import datetime
 
@@ -176,7 +177,8 @@ GUARD_OUT = [output_guardrail_fn]
 # 공통 말투: 가벼운 옛 궁중 존댓말 (수라간 컨셉)
 COURT = (" 이곳은 임금께 수라를 올리던 '수라간'이다. 손님을 귀히 모시는 옛 궁중 존댓말로 답하라: "
     "손님을 '마마'라 부르고 자신은 '소인'이라 칭하며 '~이옵니다 / ~드리겠사옵니다 / ~여쭙겠사옵니다'처럼 정중히. "
-    "단 현대인이 쉽게 읽히도록 과한 고어는 피하고 가볍게. 답은 한국어로 짧고 친절하게.")
+    "단 현대인이 쉽게 읽히도록 과한 고어는 피하고 가볍게. 답은 한국어로 짧고 친절하게. "
+    "마크다운 서식(별표 **, # 제목, 번호·불릿 목록)은 쓰지 말고 평문 문장으로 답하라.")
 
 menu_agent = Agent(name="Menu Agent", model=MODEL, handoff_description="메뉴, 재료, 알레르기 관련 질문 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 수라(메뉴) 담당 나인이다. 메뉴·재료·알레르기 물음에 정성껏 아뢴다." + COURT,
@@ -214,7 +216,10 @@ ICON = {
 }
 
 
-def esc(t): return html.escape(t).replace("\n", "<br>")
+def esc(t):
+    t = html.escape(t).replace("\n", "<br>")
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)  # 마크다운 굵게 → 실제 굵게 (별표 노출 방지)
+    return t
 
 def seal_html(agent, big=False):
     return f'<div class="seal{" big" if big else ""}">{ICON[agent]}</div>'
