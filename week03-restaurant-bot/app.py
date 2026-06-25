@@ -68,13 +68,14 @@ st.markdown(
         box-shadow:0 1px 4px rgba(90,60,30,.16); word-break:break-word; }
       .user .bubble { background:#a8392a; color:#fdf3e6; border-radius:16px 16px 4px 16px; }
       .bot  .bubble { background:#fffdf5; color:#332a1d; border:1px solid #e3d6bd; border-radius:16px 16px 16px 4px; }
-      /* 낙관(도장): 한지 위 빨간 인주 — 흰 배경 + 빨간 테두리 + 빨간 아이콘 */
-      .seal { width:42px; height:42px; flex:none; border-radius:5px;
-        background:#fffdf5; color:#a8392a; border:2px solid #a8392a;
+      /* 낙관(도장): 인주 빨강 원형 + 흰 음각(아이콘) + 안쪽 흰 테두리선 */
+      .seal { width:44px; height:44px; flex:none; border-radius:50%;
+        background:#bb392c; color:#fdf6e7;
         display:flex; align-items:center; justify-content:center;
-        box-shadow:0 1px 3px rgba(90,60,30,.18), inset 0 0 0 1px rgba(168,57,42,.25); }
-      .seal svg { width:22px; height:22px; }
-      .seal.big { width:62px; height:62px; border-radius:7px; border-width:2.5px; }
+        box-shadow:inset 0 0 0 3px #bb392c, inset 0 0 0 4px #fdf6e7, 0 1px 3px rgba(90,30,20,.3); }
+      .seal svg { width:21px; height:21px; }
+      .seal.big { width:64px; height:64px;
+        box-shadow:inset 0 0 0 4px #bb392c, inset 0 0 0 5px #fdf6e7, 0 2px 5px rgba(90,30,20,.28); }
       .seal.big svg { width:31px; height:31px; }
       .name { font-size:12px; color:#8a6a3f; margin:0 0 3px 4px; font-weight:700; }
       .time { font-size:11px; color:#a8987f; white-space:nowrap; padding-bottom:2px; }
@@ -208,7 +209,7 @@ for a in (menu_agent, order_agent, reservation_agent, complaints_agent):
 AGENTS = {a.name: a for a in ALL}
 KOR = {"Triage Agent": "안내", "Menu Agent": "메뉴", "Order Agent": "주문", "Reservation Agent": "예약", "Complaints Agent": "불만"}
 # 담당별 라인 아이콘 — 붉은 도장(낙관) 안에 단색 선으로 표시 (이모지 미사용)
-_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'>{}</svg>"
+_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'>{}</svg>"
 ICON = {
     "Triage Agent": _SVG.format("<path d='M6 16V11a6 6 0 0 1 12 0v5l1.5 2H4.5L6 16Z'/><path d='M10 20a2 2 0 0 0 4 0'/>"),          # 서비스벨
     "Menu Agent": _SVG.format("<rect x='5' y='3' width='14' height='18' rx='1.5'/><path d='M8 8h8M8 12h8M8 16h5'/>"),           # 메뉴판
