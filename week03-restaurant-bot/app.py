@@ -189,22 +189,22 @@ COURT = (" 이곳은 임금께 수라를 올리던 '수라간'이다. 손님을 
 
 menu_agent = Agent(name="Menu Agent", model=MODEL, handoff_description="메뉴, 재료, 알레르기 관련 질문 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 수라(메뉴) 담당 나인이다. 메뉴·재료·알레르기 물음에 정성껏 아뢴다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)
 order_agent = Agent(name="Order Agent", model=MODEL, handoff_description="주문 받기와 주문 확인 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 주문 담당 나인이다. 손님의 주문을 받고 그 내용을 다시 확인해 아뢴다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)
 reservation_agent = Agent(name="Reservation Agent", model=MODEL, handoff_description="테이블 예약 처리 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 예약 담당 나인이다. 인원·날짜·시간을 여쭈어 자리를 잡아드린다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)
 complaints_agent = Agent(name="Complaints Agent", model=MODEL, handoff_description="불만·컴플레인 처리 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간의 불편 처리 담당 상궁이다. 먼저 진심으로 공감하고 깊이 사죄드린 뒤, 해결책(환불 / 다음 납시 50% 감해드림 / 매니저 콜백)을 선택지로 아뢴다. 위생·안전처럼 중한 일이면 매니저 에스컬레이션을 권한다." + COURT,
-    input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)
 
 # 입력 가드레일은 모든 담당에 적용 — 대화 중에도 off-topic 차단. 단답 오탐은 Topic Guard의 bias-to-allow 프롬프트로 방지
 triage_agent = Agent(name="Triage Agent", model=MODEL, handoff_description="안내",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 수라간 입구의 안내 나인이다. 손님의 청을 보고 메뉴/주문/예약/불만 중 알맞은 담당에게 넘긴다. 불만·컴플레인이면 Complaints 로. 직접 답하지 말고 분류해 전달하라." + COURT,
     handoffs=[menu_agent, order_agent, reservation_agent, complaints_agent],
-    input_guardrails=[topic_guardrail], output_guardrails=GUARD_OUT)
+    output_guardrails=GUARD_OUT)
 
 ALL = [triage_agent, menu_agent, order_agent, reservation_agent, complaints_agent]
 for a in (menu_agent, order_agent, reservation_agent, complaints_agent):
@@ -266,6 +266,17 @@ async def run_agent(text):
     bubble_slot = st.empty()
     cur = st.session_state["active_agent_name"]
     bubble_slot.markdown(typing_html(cur), unsafe_allow_html=True)
+
+    # 입력 가드레일: 스트리밍 '전에' 먼저 검사 → off-topic 내용이 잠깐 보였다 사라지는 것 방지
+    gi = (await Runner.run(_topic_guard, text)).final_output
+    if gi.is_off_topic or gi.is_inappropriate:
+        bubble_slot.empty()
+        handoff_slot.empty()
+        msg = "송구하옵니다 마마. 소인은 수라간 일(메뉴 · 주문 · 예약 · 문의)만 받들 수 있사옵니다. 메뉴 · 주문 · 예약을 분부하여 주시옵소서."
+        st.markdown(sys_html(msg), unsafe_allow_html=True)
+        st.session_state["msgs"].append({"role": "sys", "text": msg})
+        return
+
     handoff_name = None
     response = ""
     try:
