@@ -68,14 +68,14 @@ st.markdown(
         box-shadow:0 1px 4px rgba(90,60,30,.16); word-break:break-word; }
       .user .bubble { background:#a8392a; color:#fdf3e6; border-radius:16px 16px 4px 16px; }
       .bot  .bubble { background:#fffdf5; color:#332a1d; border:1px solid #e3d6bd; border-radius:16px 16px 16px 4px; }
-      /* 낙관(도장): 인주 빨강 원형 + 흰 음각(아이콘) + 안쪽 흰 테두리선 */
-      .seal { width:44px; height:44px; flex:none; border-radius:50%;
-        background:#bb392c; color:#fdf6e7;
+      /* 낙관(도장): 한지 흰 바탕 + 빨간 글자(주문) + 빨간 사각 이중 테두리 */
+      .seal { width:44px; height:44px; flex:none; border-radius:6px;
+        background:#fffdf5; color:#bb392c; border:2.5px solid #bb392c;
         display:flex; align-items:center; justify-content:center;
-        box-shadow:inset 0 0 0 3px #bb392c, inset 0 0 0 4px #fdf6e7, 0 1px 3px rgba(90,30,20,.3); }
+        box-shadow:inset 0 0 0 2px #fffdf5, inset 0 0 0 3px #bb392c, 0 1px 2px rgba(90,40,30,.2); }
       .seal svg { width:21px; height:21px; }
-      .seal.big { width:64px; height:64px;
-        box-shadow:inset 0 0 0 4px #bb392c, inset 0 0 0 5px #fdf6e7, 0 2px 5px rgba(90,30,20,.28); }
+      .seal.big { width:64px; height:64px; border-radius:9px; border-width:3px;
+        box-shadow:inset 0 0 0 3px #fffdf5, inset 0 0 0 4px #bb392c, 0 2px 4px rgba(90,40,30,.18); }
       .seal.big svg { width:31px; height:31px; }
       /* 글자 낙관: 담당 두 글자를 세로로 음각 */
       .seal-t { display:flex; flex-direction:column; align-items:center; justify-content:center;
