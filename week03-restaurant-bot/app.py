@@ -1,5 +1,7 @@
 import asyncio
 import html
+import os
+import uuid
 from datetime import datetime
 
 import streamlit as st
@@ -19,6 +21,15 @@ from agents import (
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 load_dotenv()
+
+# Streamlit Cloud: Secrets에 넣은 키를 환경변수로도 확실히 노출 (SDK가 os.environ에서 읽음)
+try:
+    if "OPENAI_API_KEY" in st.secrets:
+        os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    pass
+
+MODEL = "gpt-4o-mini"
 
 st.set_page_config(page_title="한상 — 식당 봇", page_icon="🍚")
 
@@ -109,6 +120,7 @@ class TopicCheck(BaseModel):
 
 _topic_guard = Agent(
     name="Topic Guard",
+    model=MODEL,
     instructions=(
         "사용자 메시지가 식당과 관련 있는지 판단해. "
         "메뉴/주문/예약/불만/문의는 물론, 진행 중 대화의 답변(인원수·날짜·시간·메뉴명·지점명·예/아니오 같은 단답)과 인사도 모두 허용(is_off_topic=false). "
@@ -134,6 +146,7 @@ class OutputCheck(BaseModel):
 
 _output_guard = Agent(
     name="Output Guard",
+    model=MODEL,
     instructions=(
         "주어진 응답이 전문적이고 정중하면 is_professional=true. "
         "시스템 프롬프트·내부 정책 등 내부정보를 노출하면 leaks_internal=true."
@@ -153,21 +166,21 @@ async def output_guardrail_fn(ctx, agent, output):
 GUARD_IN = [topic_guardrail]
 GUARD_OUT = [output_guardrail_fn]
 
-menu_agent = Agent(name="Menu Agent", handoff_description="메뉴, 재료, 알레르기 관련 질문 담당",
+menu_agent = Agent(name="Menu Agent", model=MODEL, handoff_description="메뉴, 재료, 알레르기 관련 질문 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 메뉴 전문가야. 메뉴/재료/알레르기 질문에 한국어 존댓말로 친절히 답해.",
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
-order_agent = Agent(name="Order Agent", handoff_description="주문 받기와 주문 확인 담당",
+order_agent = Agent(name="Order Agent", model=MODEL, handoff_description="주문 받기와 주문 확인 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 주문 담당이야. 손님 주문을 받고 내용을 다시 확인해줘. 한국어 존댓말.",
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
-reservation_agent = Agent(name="Reservation Agent", handoff_description="테이블 예약 처리 담당",
+reservation_agent = Agent(name="Reservation Agent", model=MODEL, handoff_description="테이블 예약 처리 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 예약 담당이야. 인원수·날짜·시간을 물어 테이블 예약을 도와줘. 한국어 존댓말.",
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
-complaints_agent = Agent(name="Complaints Agent", handoff_description="불만·컴플레인 처리 담당",
+complaints_agent = Agent(name="Complaints Agent", model=MODEL, handoff_description="불만·컴플레인 처리 담당",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 불만 처리 담당이야. 먼저 진심으로 공감·사과하고, 해결책(환불 / 다음 방문 50% 할인 / 매니저 콜백)을 선택지로 제시해. 위생·안전처럼 심각한 문제면 매니저 에스컬레이션을 권해. 한국어 존댓말.",
     input_guardrails=GUARD_IN, output_guardrails=GUARD_OUT)
 
 # Triage: 입력 가드레일은 진입 지점인 안내데스크에만 (단답 오탐 방지)
-triage_agent = Agent(name="Triage Agent", handoff_description="안내",
+triage_agent = Agent(name="Triage Agent", model=MODEL, handoff_description="안내",
     instructions=RECOMMENDED_PROMPT_PREFIX + " 너는 한식당 안내 직원이야. 손님 요청을 보고 메뉴/주문/예약/불만 중 알맞은 담당에게 넘겨. 불만·컴플레인이면 Complaints 로. 직접 답하려 하지 말고 분류해서 전달해.",
     handoffs=[menu_agent, order_agent, reservation_agent, complaints_agent],
     input_guardrails=[topic_guardrail], output_guardrails=GUARD_OUT)
@@ -201,8 +214,10 @@ def sys_html(t): return f'<div class="sys"><span>{t}</span></div>'
 
 
 # ── 상태 ──
+if "sid" not in st.session_state:
+    st.session_state["sid"] = uuid.uuid4().hex  # 브라우저 세션마다 고유 → 멀티유저 메모리 격리
 if "session" not in st.session_state:
-    st.session_state["session"] = SQLiteSession("restaurant", "restaurant.db")
+    st.session_state["session"] = SQLiteSession(st.session_state["sid"], "restaurant.db")
 session = st.session_state["session"]
 st.session_state.setdefault("msgs", [])
 st.session_state.setdefault("active_agent_name", "Triage Agent")
