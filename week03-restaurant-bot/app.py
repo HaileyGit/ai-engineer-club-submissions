@@ -77,6 +77,10 @@ st.markdown(
       .seal.big { width:64px; height:64px;
         box-shadow:inset 0 0 0 4px #bb392c, inset 0 0 0 5px #fdf6e7, 0 2px 5px rgba(90,30,20,.28); }
       .seal.big svg { width:31px; height:31px; }
+      /* 글자 낙관: 담당 두 글자를 세로로 음각 */
+      .seal-t { display:flex; flex-direction:column; align-items:center; justify-content:center;
+        line-height:.96; font-family:'Song Myung','Noto Serif KR',serif; font-weight:700; font-size:15.5px; }
+      .seal.big .seal-t { font-size:22px; }
       .name { font-size:12px; color:#8a6a3f; margin:0 0 3px 4px; font-weight:700; }
       .time { font-size:11px; color:#a8987f; white-space:nowrap; padding-bottom:2px; }
 
@@ -225,7 +229,8 @@ def esc(t):
     return t
 
 def seal_html(agent, big=False):
-    return f'<div class="seal{" big" if big else ""}">{ICON[agent]}</div>'
+    chars = "".join(f"<b>{c}</b>" for c in KOR[agent])  # 두 글자 세로 음각
+    return f'<div class="seal{" big" if big else ""}"><span class="seal-t">{chars}</span></div>'
 
 def user_html(t, ts):
     return f'<div class="row user"><span class="time">{ts}</span><div class="bubble">{esc(t)}</div></div>'
