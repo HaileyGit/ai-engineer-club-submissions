@@ -31,15 +31,15 @@ except Exception:
 
 MODEL = "gpt-4o-mini"
 
-st.set_page_config(page_title="한상 — 식당 봇", page_icon="🍚")
+st.set_page_config(page_title="한상 — 식당 봇")
 
 st.markdown(
     """
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700;800&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Song+Myung&family=Noto+Serif+KR:wght@400;500;700;900&family=Gowun+Batang:wght@400;700&display=swap');
 
       html, body, .stApp, [data-testid="stChatInput"] textarea, .bubble, .name, .time, .seat, .stButton button {
-        font-family:'Gowun Batang','Nanum Myeongjo',serif; }
+        font-family:'Gowun Batang','Noto Serif KR',serif; }
 
       /* 한지 결 — 앱 전체 동일 배경 */
       .stApp, section[data-testid="stSidebar"], [data-testid="stBottom"], [data-testid="stBottomBlockContainer"] {
@@ -55,9 +55,9 @@ st.markdown(
       .hero { background:linear-gradient(#332c24,#241e18); color:#fff; text-align:center;
         padding:14px 24px 16px; border-radius:8px; margin-bottom:6px;
         border:3px solid #c9a24a; box-shadow:0 6px 20px rgba(40,30,20,.32), inset 0 0 0 1px #5a4a2e; }
-      .hero h1 { margin:0; font-family:'Nanum Brush Script',cursive; font-size:52px; line-height:1;
-        color:#ecc873; text-shadow:2px 2px 4px rgba(0,0,0,.5); }
-      .hero p { margin:5px 0 0; color:#d8c39a; font-size:13px; font-family:'Nanum Myeongjo',serif; }
+      .hero h1 { margin:0; font-family:'Song Myung','Noto Serif KR',serif; font-size:46px; line-height:1;
+        letter-spacing:8px; padding-left:8px; color:#ecc873; text-shadow:2px 2px 4px rgba(0,0,0,.5); }
+      .hero p { margin:7px 0 0; color:#d8c39a; font-size:12.5px; letter-spacing:1px; font-family:'Noto Serif KR',serif; }
 
       .row { display:flex; gap:8px; margin:13px 0; align-items:flex-end; }
       .row.user { justify-content:flex-end; }
@@ -67,9 +67,13 @@ st.markdown(
         box-shadow:0 1px 4px rgba(90,60,30,.16); word-break:break-word; }
       .user .bubble { background:#a8392a; color:#fdf3e6; border-radius:16px 16px 4px 16px; }
       .bot  .bubble { background:#fffdf5; color:#332a1d; border:1px solid #e3d6bd; border-radius:16px 16px 16px 4px; }
-      .avatar { width:40px; height:40px; border-radius:50%; flex:none; background:#fffdf5;
-        border:1.5px solid #d6c39e; display:flex; align-items:center; justify-content:center;
-        font-size:20px; box-shadow:0 1px 3px rgba(90,60,30,.15); }
+      .seal { width:42px; height:42px; flex:none; border-radius:7px;
+        background:#a8392a; color:#f4e7cf; border:1.5px solid #7c2417;
+        display:flex; align-items:center; justify-content:center;
+        box-shadow:0 1px 3px rgba(90,30,20,.3), inset 0 0 0 1px rgba(244,231,207,.22); }
+      .seal svg { width:23px; height:23px; }
+      .seal.big { width:62px; height:62px; border-radius:10px; }
+      .seal.big svg { width:32px; height:32px; }
       .name { font-size:12px; color:#8a6a3f; margin:0 0 3px 4px; font-weight:700; }
       .time { font-size:11px; color:#a8987f; white-space:nowrap; padding-bottom:2px; }
 
@@ -99,14 +103,14 @@ st.markdown(
 
       .seat { background:#fffdf5; border:1px solid #e3d6bd; border-radius:12px; padding:18px;
         text-align:center; box-shadow:0 2px 10px rgba(90,60,30,.08); color:#7a6a52; font-size:13px; }
-      .seat .who { font-size:22px; font-weight:800; color:#a8392a; margin-top:8px; font-family:'Nanum Myeongjo',serif; }
+      .seat .who { font-size:18px; font-weight:700; color:#a8392a; margin-top:10px; letter-spacing:1px; font-family:'Song Myung','Noto Serif KR',serif; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 st.markdown(
     '<div class="hero"><h1>한상</h1>'
-    "<p>🍚 정성껏 차린 한 상 · 메뉴·주문·예약을 도와드립니다</p></div>",
+    "<p>정성껏 차린 한 상 · 메뉴 · 주문 · 예약을 도와드립니다</p></div>",
     unsafe_allow_html=True,
 )
 
@@ -191,22 +195,33 @@ for a in (menu_agent, order_agent, reservation_agent, complaints_agent):
 
 AGENTS = {a.name: a for a in ALL}
 KOR = {"Triage Agent": "안내", "Menu Agent": "메뉴", "Order Agent": "주문", "Reservation Agent": "예약", "Complaints Agent": "불만"}
-AVATAR = {"Triage Agent": "🛎", "Menu Agent": "📜", "Order Agent": "🥢", "Reservation Agent": "📅", "Complaints Agent": "🙇"}
+# 담당별 라인 아이콘 — 붉은 도장(낙관) 안에 단색 선으로 표시 (이모지 미사용)
+_SVG = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'>{}</svg>"
+ICON = {
+    "Triage Agent": _SVG.format("<path d='M6 16V11a6 6 0 0 1 12 0v5l1.5 2H4.5L6 16Z'/><path d='M10 20a2 2 0 0 0 4 0'/>"),          # 서비스벨
+    "Menu Agent": _SVG.format("<rect x='5' y='3' width='14' height='18' rx='1.5'/><path d='M8 8h8M8 12h8M8 16h5'/>"),           # 메뉴판
+    "Order Agent": _SVG.format("<path d='M4 11h16a8 8 0 0 1-16 0Z'/><path d='M3 11h18'/><path d='M9 6c-.8-1.3 0-2 0-3M13 6c-.8-1.3 0-2 0-3'/>"),  # 밥공기
+    "Reservation Agent": _SVG.format("<rect x='4' y='5' width='16' height='16' rx='1.5'/><path d='M4 9h16M8 3v4M16 3v4'/>"),    # 달력
+    "Complaints Agent": _SVG.format("<path d='M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z'/>"),  # 말풍선
+}
 
 
 def esc(t): return html.escape(t).replace("\n", "<br>")
+
+def seal_html(agent, big=False):
+    return f'<div class="seal{" big" if big else ""}">{ICON[agent]}</div>'
 
 def user_html(t, ts):
     return f'<div class="row user"><span class="time">{ts}</span><div class="bubble">{esc(t)}</div></div>'
 
 def bot_html(agent, t, ts=""):
     ts_html = f'<span class="time">{ts}</span>' if ts else ""
-    return (f'<div class="row bot"><div class="avatar">{AVATAR[agent]}</div>'
+    return (f'<div class="row bot">{seal_html(agent)}'
             f'<div class="col"><div class="name">{KOR[agent]} 담당</div>'
             f'<div class="bubble">{esc(t)}</div></div>{ts_html}</div>')
 
 def typing_html(agent):
-    return (f'<div class="row bot"><div class="avatar">{AVATAR[agent]}</div>'
+    return (f'<div class="row bot">{seal_html(agent)}'
             f'<div class="col"><div class="name">{KOR[agent]} 담당</div>'
             f'<div class="bubble typing"><i></i><i></i><i></i></div></div></div>')
 
@@ -239,7 +254,7 @@ async def run_agent(text):
                 if event.item.type == "handoff_output_item":
                     handoff_name = event.item.target_agent.name
                     cur = handoff_name
-                    handoff_slot.markdown(sys_html(f"🔀 {KOR[cur]} 담당에게 연결합니다"), unsafe_allow_html=True)
+                    handoff_slot.markdown(sys_html(f"{KOR[cur]} 담당에게 연결합니다"), unsafe_allow_html=True)
                     bubble_slot.markdown(typing_html(cur), unsafe_allow_html=True)
             elif event.type == "raw_response_event":
                 if event.data.type == "response.output_text.delta":
@@ -249,20 +264,20 @@ async def run_agent(text):
     except InputGuardrailTripwireTriggered:
         bubble_slot.empty()
         handoff_slot.empty()
-        msg = "🚫 식당(메뉴·주문·예약·문의) 관련해서만 도와드릴 수 있어요. 메뉴 확인·주문·예약을 도와드릴게요!"
+        msg = "식당(메뉴 · 주문 · 예약 · 문의) 관련해서만 도와드릴 수 있어요. 메뉴 확인 · 주문 · 예약을 도와드릴게요."
         st.markdown(sys_html(msg), unsafe_allow_html=True)
         st.session_state["msgs"].append({"role": "sys", "text": msg})
         return
     except OutputGuardrailTripwireTriggered:
         bubble_slot.empty()
         handoff_slot.empty()
-        msg = "⚠️ 적절한 답변을 준비하지 못했어요. 다시 한 번 말씀해 주시겠어요?"
+        msg = "적절한 답변을 준비하지 못했어요. 다시 한 번 말씀해 주시겠어요?"
         st.markdown(sys_html(msg), unsafe_allow_html=True)
         st.session_state["msgs"].append({"role": "sys", "text": msg})
         return
 
     if handoff_name:
-        st.session_state["msgs"].append({"role": "sys", "text": f"🔀 {KOR[handoff_name]} 담당에게 연결합니다"})
+        st.session_state["msgs"].append({"role": "sys", "text": f"{KOR[handoff_name]} 담당에게 연결합니다"})
     st.session_state["msgs"].append({"role": "bot", "text": response, "agent": final, "ts": ts})
     st.session_state["active_agent_name"] = final
 
@@ -273,16 +288,16 @@ was_empty = not st.session_state["msgs"]
 
 if was_empty:
     st.markdown(
-        bot_html("Triage Agent", "안녕하세요, 「한상」입니다 😊 메뉴·주문·예약 무엇이든 편하게 말씀해 주세요."),
+        bot_html("Triage Agent", "안녕하세요, 「한상」입니다. 메뉴 · 주문 · 예약 무엇이든 편하게 말씀해 주세요."),
         unsafe_allow_html=True,
     )
     st.markdown('<div class="hint">이렇게 물어보실 수 있어요</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    if c1.button("📜 채식 메뉴 있나요?", use_container_width=True):
+    if c1.button("채식 메뉴 있나요?", use_container_width=True):
         user_msg = "채식 메뉴 있나요?"
-    if c2.button("🥢 불고기 2인분 주문", use_container_width=True):
+    if c2.button("불고기 2인분 주문", use_container_width=True):
         user_msg = "불고기 2인분 주문할게요"
-    if c3.button("📅 금요일 저녁 예약", use_container_width=True):
+    if c3.button("금요일 저녁 예약", use_container_width=True):
         user_msg = "금요일 저녁 4명 예약하고 싶어요"
 else:
     for m in st.session_state["msgs"]:
@@ -310,11 +325,13 @@ if user_msg:
 with st.sidebar:
     name = st.session_state["active_agent_name"]
     st.markdown(
-        f'<div class="seat">지금 연결된 담당<div class="who">{AVATAR[name]} {KOR[name]}</div></div>',
+        f'<div class="seat">지금 연결된 담당'
+        f'<div style="display:flex;justify-content:center;margin-top:12px">{seal_html(name, big=True)}</div>'
+        f'<div class="who">{KOR[name]} 담당</div></div>',
         unsafe_allow_html=True,
     )
     st.write("")
-    if st.button("🔄 처음으로 (안내)", use_container_width=True):
+    if st.button("처음으로", use_container_width=True):
         asyncio.run(session.clear_session())
         st.session_state["msgs"] = []
         st.session_state["active_agent_name"] = "Triage Agent"
