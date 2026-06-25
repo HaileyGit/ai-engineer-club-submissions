@@ -68,13 +68,14 @@ st.markdown(
         box-shadow:0 1px 4px rgba(90,60,30,.16); word-break:break-word; }
       .user .bubble { background:#a8392a; color:#fdf3e6; border-radius:16px 16px 4px 16px; }
       .bot  .bubble { background:#fffdf5; color:#332a1d; border:1px solid #e3d6bd; border-radius:16px 16px 16px 4px; }
-      .seal { width:42px; height:42px; flex:none; border-radius:7px;
-        background:#a8392a; color:#f4e7cf; border:1.5px solid #7c2417;
+      /* 낙관(도장): 한지 위 빨간 인주 — 흰 배경 + 빨간 테두리 + 빨간 아이콘 */
+      .seal { width:42px; height:42px; flex:none; border-radius:5px;
+        background:#fffdf5; color:#a8392a; border:2px solid #a8392a;
         display:flex; align-items:center; justify-content:center;
-        box-shadow:0 1px 3px rgba(90,30,20,.3), inset 0 0 0 1px rgba(244,231,207,.22); }
-      .seal svg { width:23px; height:23px; }
-      .seal.big { width:62px; height:62px; border-radius:10px; }
-      .seal.big svg { width:32px; height:32px; }
+        box-shadow:0 1px 3px rgba(90,60,30,.18), inset 0 0 0 1px rgba(168,57,42,.25); }
+      .seal svg { width:22px; height:22px; }
+      .seal.big { width:62px; height:62px; border-radius:7px; border-width:2.5px; }
+      .seal.big svg { width:31px; height:31px; }
       .name { font-size:12px; color:#8a6a3f; margin:0 0 3px 4px; font-weight:700; }
       .time { font-size:11px; color:#a8987f; white-space:nowrap; padding-bottom:2px; }
 
