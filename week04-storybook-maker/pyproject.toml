@@ -1,0 +1,17 @@
+[project]
+name = "storybook-maker"
+version = "0.1.0"
+description = "ADK Story Book Maker — Writer + Illustrator 파이프라인 (과제: Basic Pipeline)"
+requires-python = ">=3.11"
+dependencies = [
+    "google-adk",
+    "litellm",
+    "openai",
+    "google-genai",
+    "python-dotenv>=1.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel",
+]
