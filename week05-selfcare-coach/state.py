@@ -1,7 +1,6 @@
 """그래프가 들고 다니는 상태 (그래프설계.md §1).
 
-LangGraph 강의 전이라 프레임워크 무관한 순수 TypedDict로 둔다.
-강의에서 `messages`에 `Annotated[list, add_messages]` 리듀서 배우면 거기만 교체.
+messages는 add_messages 리듀서로 대화를 누적하고, 나머지는 커스텀 TypedDict 필드.
 """
 from typing import Annotated, TypedDict
 
