@@ -11,16 +11,20 @@
 """
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import ToolNode, tools_condition   # 강의 #14.1 빌트인
 
 from state import CoachState
 from nodes import (safety_guard, empathy, diagnose, socratic_q,
-                   evaluate, praise, hint, closing, hint_exhausted)
+                   evaluate, praise, hint, reveal, closing, hint_exhausted,
+                   enrich_agent, TOOLS)
 
 
 def build_graph():
     b = StateGraph(CoachState)
-    for fn in (safety_guard, empathy, diagnose, socratic_q, evaluate, praise, hint, closing):
+    for fn in (safety_guard, empathy, diagnose, socratic_q,
+               evaluate, praise, hint, reveal, closing, enrich_agent):
         b.add_node(fn.__name__, fn)
+    b.add_node("tools", ToolNode(TOOLS))       # search_web 실행 노드 (강의 #14.1)
 
     b.add_edge(START, "safety_guard")
     b.add_conditional_edges("safety_guard",
@@ -36,8 +40,13 @@ def build_graph():
         {"correct": "praise", "wrong": "hint", "unknown": "hint"})  # 분기② 채점
     b.add_conditional_edges("hint",
         lambda s: "exhausted" if hint_exhausted(s) else "retry",
-        {"retry": "socratic_q", "exhausted": "closing"})  # 힌트 루프 + 탈출
-    b.add_edge("praise", "closing")
+        {"retry": "evaluate", "exhausted": "reveal"})  # 힌트 뒤 답 대기 / 소진되면 정답 공개
+    b.add_edge("reveal", END)                            # 정답 알려주고 오늘은 마무리
+    # 정답 → 칭찬 → enrich_agent가 웹 검색 Tool로 실천 팁 찾기 (강의 #14.1 chatbot↔tools 루프)
+    b.add_edge("praise", "enrich_agent")
+    b.add_conditional_edges("enrich_agent", tools_condition,
+        {"tools": "tools", END: "closing"})    # tool call 있으면 tools, 없으면 closing (분기③)
+    b.add_edge("tools", "enrich_agent")          # 검색 결과 들고 복귀
     b.add_edge("closing", END)
 
     # 유저 답을 기다리려면 evaluate 실행 직전에 멈춰야 함 → interrupt_before + checkpointer(재개용)
@@ -54,7 +63,13 @@ if __name__ == "__main__":
         global seen
         msgs = graph.get_state(cfg).values.get("messages", [])
         for m in msgs[seen:]:
-            print("   🩺", getattr(m, "content", m))
+            # ToolNode 원본 검색 덤프 + tool call만 든 빈 메시지는 화면에서 숨김 (내부 처리용)
+            if getattr(m, "type", "") == "tool":
+                continue
+            content = getattr(m, "content", m)
+            if not str(content).strip():
+                continue
+            print("   🩺", content)
         seen = len(msgs)
 
     print("[사용자] 점심에 라면이랑 김밥 먹었어")

@@ -12,6 +12,7 @@ class CoachState(TypedDict, total=False):
     # ("ai", "텍스트") 튜플도 알아서 메시지 객체로 변환해준다.
     messages: Annotated[list, add_messages]
     today_input: str      # 이번 턴 사용자 입력 (예: "점심 라면+김밥")
+    domain: str           # 오늘 입력이 어느 도메인인지 (식단/수면/번아웃/운동) — diagnose가 판별
     target_concept: str   # 이번에 가르칠 개념 key (concepts.py)
     learned: dict         # 진도 메모리 {concept_key: 숙련도} — 이미 앎/모름 판단
     hint_count: int       # 현재 개념 힌트 몇 번 줬나 (루프 종료용, max=HINT_MAX)
