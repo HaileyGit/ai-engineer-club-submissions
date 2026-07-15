@@ -1,0 +1,18 @@
+# 색 컨셉 — 밤하늘을 "배경"이 아니라 "잉크"로 쓴다.
+# dark로 갔더니 어둡고, 금빛 버튼을 얹었더니 탁했다 → 캔버스는 종이, 색은 잉크 남색 하나로.
+# 발견한 것 = 종이에 찍은 별. 병원(흰/파랑)도 챗봇(회색)도 아니다.
+[theme]
+base = "light"
+primaryColor = "#2C3A64"             # 잉크 남색 (강조·버튼)
+backgroundColor = "#FCFCFA"          # 종이
+secondaryBackgroundColor = "#F2F2EF" # 카드
+textColor = "#1B1F2A"
+font = "sans serif"
+
+[client]
+# 배포본에서 상단 우측 개발자 툴바(Deploy·⋮·상태)를 숨긴다 — 사용자에겐 불필요.
+toolbarMode = "minimal"
+
+[browser]
+# 사용량 통계를 Streamlit 본사로 안 보낸다 (개인 건강 기록 앱이라 조심스럽게).
+gatherUsageStats = false

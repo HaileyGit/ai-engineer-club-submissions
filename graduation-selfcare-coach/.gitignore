@@ -1,0 +1,20 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+*.sqlite*
+# 개인 로그 실데이터는 절대 커밋 금지 (데모 더미만)
+data/
+*_real.csv
+
+# 진도 DB — 개인 건강 기록이 담긴다. 절대 커밋 금지 (그래프설계 §5)
+# ⚠️ *.db 만 막으면 새어나간다. SQLite는 -shm / -wal 사이드카를 따로 만드는데
+#    거기에 대화 원문이 그대로 들어간다. 실제로 733KB짜리 wal이 커밋돼 있었다.
+*.db
+*.db-*
+coach_memory.db*
+
+# Streamlit secrets (로컬에서 만들면 키가 담긴다) — 절대 커밋 금지
+.streamlit/secrets.toml

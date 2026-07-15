@@ -1,0 +1,11 @@
+[project]
+name = "selfcare-coach"
+version = "0.1.0"
+description = "내 몸·마음 읽기 셀프케어 코치 (LangGraph 졸업과제). 답 대신 맞히게 가르치는 교육형."
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph",
+    "langchain-openai",
+    "python-dotenv",
+    "streamlit",
+]
