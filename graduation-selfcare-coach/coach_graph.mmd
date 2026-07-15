@@ -15,7 +15,6 @@ graph TD;
 	empathy(empathy)
 	clarify(clarify)
 	absorb(absorb<hr/><small><em>__interrupt = before</em></small>)
-	care(care)
 	diagnose(diagnose)
 	socratic_q(socratic_q)
 	evaluate(evaluate)
@@ -29,41 +28,40 @@ graph TD;
 	tools(tools)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> safety_guard;
-	absorb -. &nbsp;risk&nbsp; .-> __end__;
-	absorb -. &nbsp;ok&nbsp; .-> care;
-	capture_insight -. &nbsp;risk&nbsp; .-> __end__;
-	capture_insight -. &nbsp;ok&nbsp; .-> enrich_agent;
-	care --> diagnose;
+	absorb -.-> __end__;
+	absorb -.-> diagnose;
+	capture_insight -.-> __end__;
+	capture_insight -.-> enrich_agent;
 	clarify --> absorb;
 	diagnose -. &nbsp;done&nbsp; .-> closing;
 	diagnose -. &nbsp;teach&nbsp; .-> socratic_q;
-	empathy -. &nbsp;ok&nbsp; .-> care;
 	empathy -. &nbsp;vague&nbsp; .-> clarify;
+	empathy -. &nbsp;ok&nbsp; .-> diagnose;
 	enrich_agent -. &nbsp;__end__&nbsp; .-> closing;
 	enrich_agent -.-> tools;
 	evaluate -.-> hint;
 	evaluate -. &nbsp;correct&nbsp; .-> praise;
 	evaluate -.-> reveal;
-	guard_answer -. &nbsp;risk&nbsp; .-> __end__;
-	guard_answer -. &nbsp;ok&nbsp; .-> route_intent;
+	guard_answer -.-> __end__;
+	guard_answer -.-> route_intent;
 	handle_object --> absorb;
 	hint --> guard_answer;
 	praise --> reflect;
 	reflect --> capture_insight;
 	rephrase --> guard_answer;
+	reveal --> reflect;
 	route_intent -. &nbsp;stop&nbsp; .-> closing;
 	route_intent -. &nbsp;answer&nbsp; .-> evaluate;
 	route_intent -. &nbsp;object&nbsp; .-> handle_object;
 	route_intent -. &nbsp;confused&nbsp; .-> rephrase;
 	route_record -. &nbsp;record&nbsp; .-> empathy;
 	route_record -. &nbsp;not_record&nbsp; .-> redirect;
-	safety_guard -. &nbsp;risk&nbsp; .-> __end__;
-	safety_guard -. &nbsp;ok&nbsp; .-> route_record;
+	safety_guard -.-> __end__;
+	safety_guard -.-> route_record;
 	socratic_q --> guard_answer;
 	tools --> enrich_agent;
 	closing --> __end__;
 	redirect --> __end__;
-	reveal --> __end__;
 	classDef default fill:#f2f0ff,line-height:1.2
 	classDef first fill-opacity:0
 	classDef last fill:#bfb6fc
