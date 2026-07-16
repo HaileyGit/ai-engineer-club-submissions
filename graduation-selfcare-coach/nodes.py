@@ -114,12 +114,12 @@ def clarify(state):
             "clarify_count": state.get("clarify_count", 0) + 1, "stage": "clarify"}
 
 
-def absorb(state) -> Command[Literal["diagnose", "__end__"]]:
+def absorb(state) -> Command[Literal["read_record", "__end__"]]:
     """되묻기에 대한 답을 오늘 기록에 합친다 → 그 맥락으로 바로 진단."""
     reply = (state.get("user_answer") or "").strip()
     g = guard(reply)                        # 되묻기 답에도 위험이 실려올 수 있다
     return Command(
-        goto=END if g["risk_flag"] else "diagnose",
+        goto=END if g["risk_flag"] else "read_record",
         update={"today_input": f'{state.get("today_input", "")} {reply}'.strip(),
                 "user_answer": "", "stage": "absorb", **g})
 
@@ -128,7 +128,7 @@ def absorb(state) -> Command[Literal["diagnose", "__end__"]]:
 # 첫 응답이 말풍선 4연타였다 — ①공감(empathy) ②"그럼 하나만 같이 짚어볼까요?"(care)
 # ③되짚기(socratic의 bridge) ④질문(socratic). 폰에서 벽처럼 느껴졌다.
 # ②는 순수 filler였고, care의 '지친 사람 챙기기'는 EMPATHY가 상황 맞춤 공감으로 이미 한다.
-# → care 제거. empathy(공감) → 바로 diagnose → socratic(질문). 2~3개로 산뜻해진다.
+# → care 제거. empathy(공감) → 바로 read_record → socratic(질문). 2~3개로 산뜻해진다.
 
 
 # ── 진단 → 질문 ────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ def classify_domain(text):
         if any(k in text for k in kws):
             return dom
     out = ask(P.DOMAIN.format(text=text), fallback="")
-    return next((d for d in ("식단", "수면", "번아웃", "운동") if d in out), "식단")
+    return next((d for d in ("식단", "수면", "휴식", "운동") if d in out), "식단")
 
 
 class ConceptPick(BaseModel):
@@ -159,11 +159,19 @@ def pick_concept(ti, candidates):
     return v.key if v and v.key in candidates else candidates[0]
 
 
-def diagnose(state):
-    """도메인 안에서 **오늘 기록에 맞는** 개념을 고른다.
+class FitVerdict(BaseModel):
+    # bool-first 금지 — reason 먼저, 이름 있는 분류로. (InsightVerdict 참고)
+    reason: str = Field(description="이 기록에 가르칠 개념이 있나 없나, 한 줄 근거")
+    fit: Literal["teach", "skip"] = Field(
+        description="teach=기록이 아래 개념 중 하나와 맞아 짚어줄 게 있다 / "
+                    "skip=군것질·이미 잘 챙김·전제 반대라 가르칠 게 없다")
 
-    개념은 데이터라서 도메인을 늘려도 그래프는 안 커진다.
-    대신 복잡함은 이 '판별' 쪽으로 옮겨온다.
+
+def read_record(state):
+    """이 기록에 **가르칠 게 있나**부터 정한다 (기록 주도).
+
+    예전 diagnose는 무조건 개념 하나를 골랐다 → '초코칩'에도 채소를 들이댔다.
+    이제 FIT으로 teach/skip을 먼저 끊고, teach일 때만 개념을 고른다(pick_concept 재사용).
     """
     learned = state.get("learned", {})
     # 사용자가 UI에서 골랐으면 그걸 쓴다. 자유 입력(채팅)이면 그때만 추측한다.
@@ -171,10 +179,24 @@ def diagnose(state):
     ti = state.get("today_input", "")
     candidates = [c for c in CONCEPT_ORDER
                   if c not in learned and CONCEPTS[c]["domain"] == domain]
-    if not candidates:                      # 그 도메인은 다 뗐으면 → 남은 아무 개념
+    if not candidates:                      # 이 도메인은 다 뗐으면 → 남은 아무 개념
         candidates = [c for c in CONCEPT_ORDER if c not in learned]
-    return {"target_concept": pick_concept(ti, candidates),
-            "domain": domain, "stage": "diagnose"}
+    if not candidates:                      # 9개 다 배웠다 → 더 가르칠 것 없음
+        return {"fit": "skip", "target_concept": None, "domain": domain, "stage": "read_record"}
+
+    options = "\n".join(f"- {CONCEPTS[c]['title']}: {CONCEPTS[c]['criteria']}" for c in candidates)
+    v = ask_structured(P.FIT.format(ti=ti, options=options), FitVerdict)
+    if v is None or v.fit == "teach":       # 판정 실패 시 안전빵: 가르친다(코칭이 이 앱의 정체성)
+        return {"fit": "teach", "target_concept": pick_concept(ti, candidates),
+                "domain": domain, "stage": "read_record"}
+    return {"fit": "skip", "target_concept": None, "domain": domain, "stage": "read_record"}
+
+
+def acknowledge(state):
+    """가르칠 게 없는 기록 → 억지로 안 가르치고 가볍게 받아준다 (원하면 이어갈 선택권만)."""
+    msg = ask(P.ACKNOWLEDGE.format(ti=state.get("today_input", "")),
+              fallback="오늘 그런 하루였군요. 오늘은 딱히 짚을 건 없어요 — 혹시 다른 얘기도 해볼까요?")
+    return {"messages": [("ai", msg)], "stage": "acknowledge"}
 
 
 class Bridge(BaseModel):

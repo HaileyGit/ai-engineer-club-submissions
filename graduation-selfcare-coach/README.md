@@ -14,8 +14,8 @@
 ```
 START → safety_guard ─(위험? 안내 후 END)─→ route_record
   route_record ─(기록? empathy / 질문·잡담? redirect → END)
-  empathy ─(애매? clarify →[답 대기]→ absorb / 명확? diagnose)
-  diagnose ─(다 배웠나? closing / 가르칠 개념 있나? socratic_q)
+  empathy ─(애매? clarify →[답 대기]→ absorb / 명확? read_record)
+  read_record ─(가르칠 게 있나? teach: socratic_q / 없으면 skip: acknowledge → END)
   socratic_q →[답 대기]→ guard_answer ─(위험? END)─→ route_intent
   route_intent ─→ answer: evaluate / object: handle_object→absorb / confused: rephrase / stop: closing
   evaluate ─→ correct: praise / 틀림: hint / 힌트 소진: reveal(정답 공개)
@@ -31,7 +31,7 @@ START → safety_guard ─(위험? 안내 후 END)─→ route_record
 
 | 요구 | 구현 |
 |---|---|
-| **노드 3개+** | **21개** (safety·empathy·diagnose·socratic_q·evaluate·hint·reveal·reflect·capture_insight·enrich·tools …) |
+| **노드 3개+** | **22개** (safety·empathy·**read_record**·socratic_q·evaluate·hint·reveal·reflect·capture_insight·**acknowledge**·enrich·tools …) |
 | **분기 1개+** | **10군데** — 조건부 엣지 6(기록·애매·도메인·의도·채점·툴호출) + **Command 분기 4**(안전·답변안전·되묻기·발견) |
 | **Tool 연동 1개+** | `search_web` — `@tool` → `bind_tools` → `ToolNode` → `tools_condition` (#14.1) |
 | (선택) 메모리 | **SqliteSaver** checkpointer — 재시작해도 배운 개념·발견 유지 (#14.2) |
@@ -60,17 +60,19 @@ START → safety_guard ─(위험? 안내 후 END)─→ route_record
 
 ## 설계 포인트
 
-**1. 개념은 데이터, 그래프는 고정.** 도메인을 아무리 더해도 노드·엣지는 안 늘어난다. `diagnose`가 도메인을 판별하면 `socratic_q → evaluate → praise/hint → reflect → capture_insight` 공통 흐름이 어떤 개념이든 똑같이 처리한다. 복잡함은 **판별 단계로 옮긴다.**
+**1. 기록 주도 — 가르칠 게 없으면 안 가르친다.** `read_record`가 먼저 **이 기록에 짚을 게 있나(teach/skip)** 를 정한다. 있으면 `socratic_q → evaluate → praise/hint → reflect → capture_insight` 공통 흐름을, 없으면(군것질·이미 잘 챙김·전제 반대) `acknowledge`로 가볍게 받아주고 끝낸다. 예전엔 무조건 개념을 골라 '초코칩'에도 채소를 들이댔다 — 커리큘럼을 억지로 욱여넣던 걸 끊었다.
 
-**2. 넘겨짚지 않는다.** 도메인을 알 수 없는 입력("피곤해")은 `clarify`가 되묻고, 코치가 잘못 짚었으면 `route_intent`가 **항의를 알아듣고** `handle_object`가 사과 후 다시 진단한다.
+**2. 개념은 데이터, 그래프는 고정.** 도메인을 아무리 더해도 노드·엣지는 안 늘어난다. teach 흐름은 어떤 개념이든 똑같이 처리하고, 복잡함은 **판별(read_record·pick_concept) 단계로 옮긴다.**
 
-**3. 산출물은 자기 발견.** 개념을 한 단어 맞히는 걸로 끝나지 않는다. `reflect`가 **자기 몸에 적용**하게 하고, 거기서 나온 "나는 이럴 때 이렇더라"를 `capture_insight`가 카드로 모은다. 못 맞혀도(`reveal`) 이 단계로 이어 빈손으로 보내지 않는다.
+**3. 넘겨짚지 않는다.** 도메인을 알 수 없는 입력("피곤해")은 `clarify`가 되묻고, 코치가 잘못 짚었으면 `route_intent`가 **항의·반어를 알아듣고** `handle_object`가 사과 후 다시 진단한다.
 
-**4. 안전은 여러 겹.** 키워드(의학 응급) + **Moderation API**(self-harm, 무료) + **LLM 검사관**(한국어·맥락) + **Output 가드**(의료 조언 차단). 각각 다른 걸 잡는다 — Moderation은 한국어 자해 표현을 놓쳐서 LLM 검사관을 덧댔다. 의학 응급 → 119·병원 / 정신적 위기 → **109**로 갈래를 나눴다.
+**4. 산출물은 자기 발견.** 개념을 한 단어 맞히는 걸로 끝나지 않는다. `reflect`가 **자기 몸에 적용**하게 하고, 거기서 나온 "나는 이럴 때 이렇더라"를 `capture_insight`가 카드로 모은다. 못 맞혀도(`reveal`) 이 단계로 이어 빈손으로 보내지 않는다.
 
-**5. 판정은 temperature=0.** 분류·채점(라우팅·evaluate·output guard)은 매번 같은 답이 나와야 한다. 생성(공감·힌트)만 온도를 준다.
+**5. 안전은 여러 겹.** 키워드(의학 응급) + **Moderation API**(self-harm, 무료) + **LLM 검사관**(한국어·맥락) + **Output 가드**(의료 조언 차단). 각각 다른 걸 잡는다 — Moderation은 한국어 자해 표현을 놓쳐서 LLM 검사관을 덧댔다. 의학 응급 → 119·병원 / 정신적 위기 → **109**로 갈래를 나눴다.
 
-**6. 구조화 출력에 bool을 앞세우지 않는다.** 모델은 필드 순서대로 생각한다 — bool이 맨 앞이면 근거 쓰기 전에 결론부터 뱉는다. `reason`을 맨 앞에, 판정은 이름 있는 분류(`Literal: felt/cause/none` 등)로 받고 bool은 코드에서 만든다.
+**6. 판정은 temperature=0.** 분류·채점(라우팅·evaluate·output guard)은 매번 같은 답이 나와야 한다. 생성(공감·힌트)만 온도를 준다.
+
+**7. 구조화 출력에 bool을 앞세우지 않는다.** 모델은 필드 순서대로 생각한다 — bool이 맨 앞이면 근거 쓰기 전에 결론부터 뱉는다. `reason`을 맨 앞에, 판정은 이름 있는 분류(`Literal: felt/cause/none` 등)로 받고 bool은 코드에서 만든다.
 
 ## 파일
 

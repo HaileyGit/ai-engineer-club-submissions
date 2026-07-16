@@ -1,6 +1,6 @@
 """LangGraph 그래프 조립 (그래프설계.md §3).
 
-흐름: safety_guard →(위험? END : empathy)→ diagnose →(다 앎? closing : socratic_q)
+흐름: safety_guard →(위험? END : empathy)→ read_record →(가르칠 게? socratic_q : acknowledge)
       → [유저 답 대기] → evaluate →(correct: praise / else: hint)
       hint →(힌트 소진? closing : socratic_q 루프)  → praise → closing → END
 
@@ -15,7 +15,7 @@ from langgraph.prebuilt import ToolNode, tools_condition   # 강의 #14.1 빌트
 
 from state import CoachState
 from nodes import (safety_guard, route_record, redirect, guard_answer, route_intent,
-                   handle_object, rephrase, empathy, clarify, absorb, diagnose,
+                   handle_object, rephrase, empathy, clarify, absorb, read_record, acknowledge,
                    socratic_q, evaluate, praise, reflect, capture_insight, hint, reveal,
                    closing, hint_exhausted, is_vague, enrich_agent, TOOLS)
 
@@ -26,7 +26,7 @@ def build_graph(checkpointer=None):
     """
     b = StateGraph(CoachState)
     for fn in (safety_guard, route_record, redirect, guard_answer, route_intent,
-               handle_object, rephrase, empathy, clarify, absorb, diagnose,
+               handle_object, rephrase, empathy, clarify, absorb, read_record, acknowledge,
                socratic_q, evaluate, praise, reflect, capture_insight, hint, reveal,
                closing, enrich_agent):
         b.add_node(fn.__name__, fn)
@@ -48,11 +48,14 @@ def build_graph(checkpointer=None):
     # 애매하지 않으면 공감(empathy) 뒤 바로 진단으로. (filler였던 care 노드는 없앴다)
     b.add_conditional_edges("empathy",
         lambda s: "vague" if is_vague(s) else "ok",
-        {"vague": "clarify", "ok": "diagnose"})
+        {"vague": "clarify", "ok": "read_record"})
     b.add_edge("clarify", "absorb")   # 이 사이에서 되묻기 답 대기(interrupt_before) → absorb가 Command로 분기
-    b.add_conditional_edges("diagnose",
-        lambda s: "done" if s.get("target_concept") is None else "teach",
-        {"done": "closing", "teach": "socratic_q"})  # 분기① 다 배웠나/가르칠 게 있나
+    # 기록 주도: 가르칠 게 있으면(teach) 질문, 없으면(skip) 억지로 안 가르치고 가볍게 받아준다.
+    # (예전엔 무조건 개념을 골라 '초코칩'에도 채소를 들이댔다)
+    b.add_conditional_edges("read_record",
+        lambda s: s.get("fit", "teach"),
+        {"teach": "socratic_q", "skip": "acknowledge"})   # 분기① 가르칠 게 있나
+    b.add_edge("acknowledge", END)
 
     # 🚨 답변에도 위험이 온다 ("잠온다"로 시작해 답변에 "심장이 아파"). 입구만 지키면 뚫린다.
     b.add_edge("socratic_q", "guard_answer")       # 이 사이에서 유저 답 대기(interrupt_before)

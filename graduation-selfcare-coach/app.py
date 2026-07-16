@@ -164,7 +164,7 @@ DOING = {
     "safety_guard": "안전 확인 중", "guard_answer": "안전 확인 중",
     "route_record": "기록을 읽는 중", "empathy": "코치가 읽는 중",
     "clarify": "되묻는 중", "absorb": "이어서 읽는 중",
-    "diagnose": "오늘 짚을 것을 고르는 중",
+    "read_record": "오늘 기록을 살피는 중", "acknowledge": "가볍게 받아주는 중",
     "socratic_q": "질문을 만드는 중", "route_intent": "답을 읽는 중",
     "evaluate": "답을 살펴보는 중", "hint": "힌트를 고르는 중",
     "reveal": "정리해서 알려주는 중", "praise": "정리하는 중",
@@ -360,7 +360,12 @@ else:
         st.markdown(f"<div class='star'><div class='v'>{insights[-1]}</div>"
                     f"<div class='m'><span class='dot'>●</span> "
                     f"{idomains[-1] if idomains else ''}</div></div>", unsafe_allow_html=True)
-    else:                                     # 오늘은 발견 없이 끝남 (못 맞힘·신호 부실)
+    elif values.get("fit") == "skip" and coach_lines:
+        # 가르칠 게 없어 가볍게 받아준 경우(read_record→skip→acknowledge) —
+        # "오늘은 여기까지" 대신 코치가 실제로 한 말을 보여준다.
+        # ("초코칩 달콤했겠네요. 오늘은 딱히 짚을 건 없어요 — 혹시 끼니 얘기도 해볼까요?")
+        st.markdown(f"<div class='empty'>{coach_lines[-1]}</div>", unsafe_allow_html=True)
+    else:                                     # 가르쳤는데 발견이 부실(못 맞힘·신호 없음)
         st.markdown("<div class='empty'>오늘은 여기까지예요.<br>"
                     "다음에 또 같이 살펴봐요.</div>", unsafe_allow_html=True)
 

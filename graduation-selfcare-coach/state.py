@@ -17,8 +17,9 @@ class CoachState(TypedDict, total=False):
     input_kind: str       # 첫 입력이 뭔지 (record/question/chitchat) — 질문·잡담엔 수업 안 함
     intent: str           # 사용자 발화 의도 (answer/object/confused/stop) — 강의 #16 Routing
     rephrase_count: int   # 질문을 쉽게 다시 물어준 횟수 (무한 되묻기 방지)
-    domain: str           # 오늘 입력이 어느 도메인인지 (식단/수면/번아웃/운동) — diagnose가 판별
-    target_concept: str   # 이번에 가르칠 개념 key (concepts.py)
+    domain: str           # 오늘 입력이 어느 도메인인지 (식단/수면/휴식/운동) — read_record가 판별
+    fit: str              # 이 기록에 가르칠 게 있나 (teach/skip) — read_record가 정함
+    target_concept: str   # 이번에 가르칠 개념 key (concepts.py). skip이면 None
     learned: dict         # 진도 메모리 {concept_key: 숙련도}
                           #   1 = 개념을 맞힘 / 2 = 내 몸에 적용해서 읽음(마스터)
     # 사용자가 스스로 발견한 **자기 패턴**. 개념 지식이 아니라 "나에 대한 앎"이 쌓인다.

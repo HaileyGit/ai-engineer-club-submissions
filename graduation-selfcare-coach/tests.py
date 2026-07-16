@@ -145,7 +145,9 @@ def test_risk_is_caught_MID_conversation(risky):
     가드가 입구에만 있어서 그냥 통과 → 코치가 '취침 시간을 생각해보세요'라고 답했다.
     사용자가 흉통을 호소하는데 수면 수업을 계속하는 셈. 모든 입력에 가드가 걸려야 한다.
     """
-    st = run("잠이 너무 온다", [risky], f"mid-{risky[:4]}")
+    # 코칭이 진행되는 기록으로 시작해야 '대화 중 답변'이 생긴다.
+    # ("잠이 너무 온다"는 이제 read_record가 skip해서 답 단계 자체가 없다)
+    st = run("새벽까지 잠을 못 잤어", [risky], f"mid-{risky[:4]}")
     assert st["risk_flag"] is True, f"대화 중 위험 신호를 놓침: {risky}"
     assert not st.get("learned"), "위험 신호가 나왔는데 수업을 계속함"
     said = _said(st)
@@ -221,7 +223,8 @@ def test_clarify_corrects_the_domain():
 
 @pytest.mark.parametrize("domain, today, expect", [
     ("식단", "치킨만 시켜먹었어", "veggie_fiber"),        # 고기는 있고 채소가 없다
-    ("식단", "샐러드 먹었어", "protein_balance"),         # 채소는 챙겼고 단백질이 없다
+    ("식단", "야채볶음이랑 밥만 먹었어", "protein_balance"),  # 채소는 챙겼고 단백질이 없다
+    # ("샐러드 먹었어"는 read_record FIT이 '건강식'으로 보고 skip할 때가 있어 경계라 뺐다)
     ("식단", "짬뽕 먹음 엄청 짰어", "hydration"),          # 짠 걸 먹었으니 수분
     ("수면", "자기 직전까지 폰 보다가 잤어", "sleep_winddown"),   # 순서상 2번째인데도
     ("휴식", "일이 끝나도 계속 알림 보게 돼", "burnout_boundary"),
@@ -234,9 +237,10 @@ def test_diagnose_picks_the_missing_thing(domain, today, expect):
     '샐러드 먹었어'에도 '밥·면 같은 탄수 위주로 먹으면 뭐가 부족?'을 물어봤고,
     '자기 직전까지 폰 봤어'에도 '자는 시각을 어떻게?'(리듬)를 물어봤다.
     **기록에서 빠진 것**을 짚어야 한다. (전 도메인 공통 문제였다)
+    (read_record가 diagnose를 대체 — 여기 케이스는 다 teach라 개념까지 골라야 한다)
     """
-    from nodes import diagnose
-    got = diagnose({"today_input": today, "domain": domain, "learned": {}})["target_concept"]
+    from nodes import read_record
+    got = read_record({"today_input": today, "domain": domain, "learned": {}})["target_concept"]
     assert got == expect, f'"{today}" → {CONCEPTS[got]["title"]} (기대: {CONCEPTS[expect]["title"]})'
 
 
