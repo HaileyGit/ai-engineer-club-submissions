@@ -365,6 +365,11 @@ else:
         # "오늘은 여기까지" 대신 코치가 실제로 한 말을 보여준다.
         # ("초코칩 달콤했겠네요. 오늘은 딱히 짚을 건 없어요 — 혹시 끼니 얘기도 해볼까요?")
         st.markdown(f"<div class='empty'>{coach_lines[-1]}</div>", unsafe_allow_html=True)
+        # ⚠️ 여기서 끝내지 않는다. "혹시 다른 얘기?"라고 해놓고 대답할 데가 없으면 허무하다.
+        #    이어 친 건 send()가 **새 기록**으로 받아 read_record를 다시 태운다(코칭되거나 또 skip).
+        #    이어갈 게 없으면 아래 '홈으로'로 나가면 된다.
+        if typed := st.chat_input("이어서 얘기하려면 적어주세요"):
+            send(typed)
     else:                                     # 가르쳤는데 발견이 부실(못 맞힘·신호 없음)
         st.markdown("<div class='empty'>오늘은 여기까지예요.<br>"
                     "다음에 또 같이 살펴봐요.</div>", unsafe_allow_html=True)
