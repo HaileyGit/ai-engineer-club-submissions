@@ -364,13 +364,17 @@ def test_route_intent(answer, intent):
 
 
 def test_objection_makes_the_coach_apologize_and_re_diagnose():
-    """항의하면 (1) 넘겨짚은 진단을 버리고 (2) 다시 물어서 (3) 맞는 도메인으로 정정해야 한다."""
-    st = run("피곤해", [
-        "ㅇㅇ",                          # 내용 없는 답 → 코치가 번아웃으로 넘겨짚음
-        "번아웃이라고 한 적 없는데",       # 항의
-        "어제 새벽 3시에 자서 그래",       # 다시 준 맥락
-        "일정하게 자는거",                 # 정답
-    ], "objection")
+    """항의하면 (1) 넘겨짚은 진단을 버리고 (2) 다시 물어서 (3) 맞는 도메인으로 정정해야 한다.
+
+    ⚠️ 기록 주도(read_record) 이후로는 막연한 입력("피곤해 ㅇㅇ")을 코칭 없이 넘길 수 있어
+       항의가 트리거되지 않을 때가 있다. 그래서 **확실히 teach되는 기록으로 시작**해 항의를
+       유발한다. (sleep_winddown을 배움처리해 수면 재진단이 sleep_rhythm으로 고정된다)
+    """
+    st = run("저녁에 치킨만 먹었어", [
+        "아 그게 아니라 요즘 잠을 못 자서 그래",   # 식단인 줄 알았는데 → 수면이라 정정(항의)
+        "새벽 3시에 자서 그래",                    # 사과 후 다시 준 맥락
+        "일정하게 자는거",                          # 정답
+    ], "objection", learned={"sleep_winddown": 2})
     assert st["domain"] == "수면", f'항의 후에도 도메인이 안 바뀜: {st.get("domain")}'
     assert "sleep_rhythm" in st.get("learned", {})
     said = _said(st)
