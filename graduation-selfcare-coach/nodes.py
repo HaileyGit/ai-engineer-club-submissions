@@ -179,9 +179,9 @@ def read_record(state):
     ti = state.get("today_input", "")
     candidates = [c for c in CONCEPT_ORDER
                   if c not in learned and CONCEPTS[c]["domain"] == domain]
-    if not candidates:                      # 이 도메인은 다 뗐으면 → 남은 아무 개념
-        candidates = [c for c in CONCEPT_ORDER if c not in learned]
-    if not candidates:                      # 9개 다 배웠다 → 더 가르칠 것 없음
+    if not candidates:                      # 이 도메인 개념을 다 뗐다.
+        # 🚫 억지로 **다른 도메인** 개념을 들이대지 않는다 — 헬스 기록에 "채소 드세요"가
+        #    나오던 버그가 여기서 났다. 이 영역은 오늘 더 볼 게 없으니 그냥 skip.
         return {"fit": "skip", "target_concept": None, "domain": domain, "stage": "read_record"}
 
     options = "\n".join(f"- {CONCEPTS[c]['title']}: {CONCEPTS[c]['criteria']}" for c in candidates)
